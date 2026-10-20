@@ -8,6 +8,23 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+if (
+    -not $env:ARM_CLIENT_SECRET -and
+    -not $env:ARM_OIDC_TOKEN -and
+    $env:ACTIONS_ID_TOKEN_REQUEST_URL -and
+    $env:ACTIONS_ID_TOKEN_REQUEST_TOKEN
+) {
+    $url = "$($env:ACTIONS_ID_TOKEN_REQUEST_URL)&audience=api://AzureADTokenExchange"
+
+    $response = Invoke-RestMethod `
+        -Uri $url `
+        -Headers @{
+            Authorization = "Bearer $env:ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+        }
+
+    $env:ARM_OIDC_TOKEN = $response.value
+}
+
 if ($env:ARM_CLIENT_SECRET) {
     $securePassword = ConvertTo-SecureString $env:ARM_CLIENT_SECRET -AsPlainText -Force
     $credential = New-Object System.Management.Automation.PSCredential($env:ARM_CLIENT_ID, $securePassword)
